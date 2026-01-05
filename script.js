@@ -1,143 +1,302 @@
 const topOperand = document.querySelector(".top-operand");
 const currentOperand = document.querySelector(".current-operand");
-
-const numberButtons = document.querySelectorAll(".number-btn")
-
-
-const sin = document.querySelector('.sin-btn');
-const cos = document.querySelector('.cos-btn');
-const tan = document.querySelector('.tan-btn');
-const log = document.querySelector('.log-btn');
-const sqrt = document.querySelector('.sqrt-btn');
-
-const allClear = document.querySelector(".ac-btn");
-const backSpace = document.getElementById("backspace-btn");
+const calcWrap = document.querySelector(".calculator-wrap");
+const historyPanel = document.getElementById("historyPanel");
+const historyItems = document.getElementById("historyItems");
+const theme = document.getElementById("themeToggle");
+const historyToggle = document.getElementById("historyToggle");
+const clearHistoryBtn = document.getElementById("clearHistory");
+const numberButtons = document.querySelectorAll(".number-btn");
 
 
-//display
 
-let current = "";  
+//display - State Variables
+
+let current = "";
 let previous = "";
 let operation = null;
+let history = [];
+let isDarkMode = false;
 
-function appendNumber(number){
+// Initialize
+updateDisplay();
 
-    if (number === '.' && current.includes('.')) return;
-    if(current.length >= 20) return;
-    current = current + number;
-    currentOperand.textContent = current;
+
+function updateDisplay() {
+  currentOperand.textContent = current || "0";
 }
 
+function appendNumber(number) {
+  if (number === "." && current.includes(".")) return;
+  if (current.length >= 20) return;
+  current = current + number;
+  updateDisplay();
+}
 
 //number buttons
 
-numberButtons.forEach( btn => {
-    btn.addEventListener('click', () => appendNumber(btn.textContent));
+numberButtons.forEach((btn) => {
+  btn.addEventListener("click", () => appendNumber(btn.textContent));
 });
+
 
 
 //operators
 
-function setOperation(op){
+function setOperation(op) {
+  if (current === "" && op === "-"){
+    current = '-';
+    updateDisplay();
+    return;
+  }
 
-    if(current == "") return;
+  else if (current === '') return;
 
-    previous = current;
-    operation = op;
-    current = "";
-
-    topOperand.textContent = previous +" "+ op ;
-    currentOperand.textContent = "";
-}
-
-function calculate(){
-
-    let a = parseFloat(previous);
-    let b = parseFloat(current);
-    let result;
-
-    switch(operation){
-        case '+' : result = a + b; break;
-        case '-' : result = a - b; break;
-        case '*' : result = a * b; break;
-        case '/' : result = a / b; break;
-        case '%' : result = a % b; break;
-        default  : return;
+  if (previous !== '' && operation !== null) {
+        calculate();
     }
 
-    topOperand.textContent = previous + " " + operation + " " + current;
-    currentOperand.textContent = result;
+ 
+  operation = op;
+  previous = current;
+  current = "";
 
-    current = result.toString();
+  topOperand.textContent = previous + " " + op;
+  updateDisplay();
 }
 
+//equals button
+
+document.getElementById('result-btn').addEventListener('click', calculate);
+
+
+function calculate() {
+
+  if(operation === null || current ==='' || previous === '') return;
+
+  let a = parseFloat(previous);
+  let b = parseFloat(current);
+  let result;
+
+  switch (operation) {
+    case "+":
+      result = a + b;
+      break;
+    case "-":
+      result = a - b;
+      break;
+    case "*":
+      result = a * b;
+      break;
+    case "/":
+        if( b === 0 ){
+            currentOperand.textContent = ' Cannot divide by 0';
+            current ='';
+            previous ='';
+            operation = null;
+            return;
+        }
+      result = a / b;
+      break;
+
+    case "%":
+      result = a % b;
+      break;
+
+    default:
+      return;
+  }
+
+    //Handle decimal rounding
+    if (result !== Math.floor(result)) {
+            result = Math.round(result * 1000000000) / 1000000000;
+        }
+
+    // Add to history
+    const entry = `${previous} ${operation} ${current} = ${result}`;
+    addToHistory(entry);
+
+    // Update display
+    topOperand.textContent = `${previous} ${operation} ${current} =`;
+    current = result.toString();
+    previous = '';
+    operation = null;
+    updateDisplay();
+
+}
 
 // AC button
 
-allClear.onclick = () => {
-    current = "";
-    previous = "";
-    topOperand.textContent = "";
-    currentOperand.textContent = "";
-};
+document.querySelector('.ac-btn').addEventListener('click', clear);
+
+function clear() {
+    current = '';
+    previous = '';
+    operation = null;
+    topOperand.textContent = '';
+    updateDisplay();
+}
+
 
 //backspace button
 
-backSpace.onclick = () => {
-    current = current.slice(0,-1);
-    currentOperand.textContent = current;
-};
+document.getElementById('backspace-btn').addEventListener('click', backspace);
 
+function backspace() {
+  current = current.slice(0, -1);
+  updateDisplay();
+}
+
+
+//percentage
+
+document.getElementById('mod-btn').addEventListener('click', () => {
+    if (current === '') return;
+
+    current = (parseFloat(current) / 100).toString();
+    updateDisplay();
+});
+
+//brackets
+
+document.querySelectorAll(".bracket").forEach(btn => {
+  btn.addEventListener("click", () => {
+    current += btn.textContent;
+    updateDisplay();
+  });
+});
 
 //Scientific operations
 
-function scientific(type){
-    let value = parseFloat(currentOperand.textContent);
-    if(isNaN(value)) return;
+function scientific(type) {
 
-    switch(type){
-        case 'sin'  : value = Math.sin(value); break;
-        case 'cos'  : value = Math.cos(value); break;
-        case 'tan'  : value = Math.tan(value); break;
-        case 'sqrt' : value = Math.sqrt(value); break;
-        case 'log'  : value = Math.log(value); break;
+  if(current === '') return;
+
+  let value = parseFloat(currentOperand.textContent);
+  if (isNaN(value)) return;
+
+  let originalValue = current;
+
+  switch (type) {
+    case "sin":
+      value = Math.sin(value);
+      break;
+    case "cos":
+      value = Math.cos(value);
+      break;
+    case "tan":
+      value = Math.tan(value);
+      break;
+    case "sqrt":
+      if (value < 0) {
+                currentOperand.textContent = 'Invalid Input';
+                current = '';
+                return;
+            }
+            value = Math.sqrt(value);
+            break;
+    case "log":
+      if (value <= 0) {
+                currentOperand.textContent = 'Invalid Input';
+                current = '';
+                return;
+            }
+            value = Math.log10(value);
+            break;
+  }
+  // Handle decimal precision
+    if (value !== Math.floor(value)) {
+        value = Math.round(value * 1000000000) / 1000000000;
     }
 
-    
-    topOperand.textContent = type + "( " + current + " )";
+    topOperand.textContent = type + '(' + originalValue + ')';
     current = value.toString();
-    currentOperand.textContent = current;
+    updateDisplay();
 }
 
-sin.onclick  = () => scientific('sin');
-cos.onclick  = () => scientific('cos');
-tan.onclick  = () => scientific('tan');
-sqrt.onclick = () => scientific('sqrt');
-log.onclick  = () => scientific('log');
 
-
-//bracket
-
-document.querySelectorAll(".bracket").forEach(btn => {
-    btn.onclick = () => {
-        current = current + btn.textContent;
-        currentOperand.textContent = current;
+// HISTORY FUNCTIONS
+function addToHistory(entry) {
+    history.unshift(entry); // Add to beginning
+    if (history.length > 10) {
+        history.pop(); // Keep only last 10
     }
+    updateHistoryDisplay();
+}
+
+
+function updateHistoryDisplay() {
+  historyItems.innerHTML =
+    history.length === 0
+      ? `<div class="no-history">No calculations yet</div>`
+      : history.map(h => `<div class="history-item">${h}</div>`).join("");
+}
+
+historyToggle.addEventListener("click", () => {
+  historyPanel.classList.toggle("active");
+});
+
+clearHistoryBtn.addEventListener("click", () => {
+  history = [];
+  updateHistoryDisplay();
 });
 
 
 //dark mode
 
-const calcWrap = document.querySelector(".calculator-wrap");
-const btnPrime = document.querySelectorAll(".btn-primary");
-
-const theme = document.getElementById("themeToggle");
 
 theme.addEventListener('click', () => {
-    calcWrap.classList.toggle("dark");
-
-    btnPrime.forEach(btn => {
-        btn.classList.toggle("dark");
+    isDarkMode = !isDarkMode;
+    
+    calcWrap.classList.toggle('dark');
+    historyPanel.classList.toggle('dark');
+    
+    document.querySelectorAll('.btn-primary').forEach(btn => {
+        btn.classList.toggle('dark');
     });
+
+    if (isDarkMode) {
+        theme.innerHTML = '<i class="fa-solid fa-sun"></i> Light Mode';
+    } else {
+        theme.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Mode';
+    }
 });
 
+
+
+//keyboard Support
+
+document.addEventListener("keydown", (e) => {
+  // Numbers
+  if (e.key >= "0" && e.key <= "9") {
+    appendNumber(e.key);
+  }
+  // Decimal
+  else if (e.key === ".") {
+    appendNumber(".");
+  }
+  // Operators
+  else if (e.key === "+" || e.key === "-" || e.key === "*" || e.key === "/") {
+    setOperation(e.key);
+  }
+  // Enter or Equals
+  else if (e.key === "Enter" || e.key === "=") {
+    e.preventDefault();
+    calculate();
+  }
+  // Backspace
+  else if (e.key === "Backspace") {
+    e.preventDefault();
+    backspace();
+  }
+  // Escape (Clear)
+  else if (e.key === "Escape") {
+    e.preventDefault();
+    clear();
+  }
+  // Brackets
+  else if (e.key === "(" || e.key === ")") {
+    current = current + e.key;
+    updateDisplay();
+  }
+});
