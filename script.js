@@ -8,7 +8,23 @@ const historyToggle = document.getElementById("historyToggle");
 const clearHistoryBtn = document.getElementById("clearHistory");
 const numberButtons = document.querySelectorAll(".number-btn");
 
+//scientific
 
+document
+  .querySelector(".sin-btn")
+  .addEventListener("click", () => scientific("sin"));
+document
+  .querySelector(".cos-btn")
+  .addEventListener("click", () => scientific("cos"));
+document
+  .querySelector(".tan-btn")
+  .addEventListener("click", () => scientific("tan"));
+document
+  .querySelector(".sqrt-btn")
+  .addEventListener("click", () => scientific("sqrt"));
+document
+  .querySelector(".log-btn")
+  .addEventListener("click", () => scientific("log"));
 
 //display - State Variables
 
@@ -20,7 +36,6 @@ let isDarkMode = false;
 
 // Initialize
 updateDisplay();
-
 
 function updateDisplay() {
   currentOperand.textContent = current || "0";
@@ -39,127 +54,84 @@ numberButtons.forEach((btn) => {
   btn.addEventListener("click", () => appendNumber(btn.textContent));
 });
 
-
-
 //operators
 
 function setOperation(op) {
-  if (current === "" && op === "-"){
-    current = '-';
+  if (current === "" && op === "-") {
+    current = "-";
     updateDisplay();
     return;
   }
 
-  else if (current === '') return;
-
-  if (previous !== '' && operation !== null) {
-        calculate();
-    }
-
- 
-  operation = op;
-  previous = current;
+  topOperand.textContent += current + " " + op + " ";
   current = "";
-
-  topOperand.textContent = previous + " " + op;
   updateDisplay();
 }
 
 //equals button
 
-document.getElementById('result-btn').addEventListener('click', calculate);
-
+document.getElementById("result-btn").addEventListener("click", calculate);
 
 function calculate() {
+  if (current === "" && topOperand.textContent === "") return;
 
-  if(operation === null || current ==='' || previous === '') return;
+  let expression = topOperand.textContent + current;
 
-  let a = parseFloat(previous);
-  let b = parseFloat(current);
-  let result;
+  try {
+    let result = eval(expression);
 
-  switch (operation) {
-    case "+":
-      result = a + b;
-      break;
-    case "-":
-      result = a - b;
-      break;
-    case "*":
-      result = a * b;
-      break;
-    case "/":
-        if( b === 0 ){
-            currentOperand.textContent = ' Cannot divide by 0';
-            current ='';
-            previous ='';
-            operation = null;
-            return;
-        }
-      result = a / b;
-      break;
-
-    case "%":
-      result = a % b;
-      break;
-
-    default:
-      return;
-  }
-
-    //Handle decimal rounding
     if (result !== Math.floor(result)) {
-            result = Math.round(result * 1000000000) / 1000000000;
-        }
+      result = Math.round(result * 1000000000) / 1000000000;
+    }
 
-    // Add to history
-    const entry = `${previous} ${operation} ${current} = ${result}`;
-    addToHistory(entry);
+    addToHistory(expression + " = " + result);
 
-    // Update display
-    topOperand.textContent = `${previous} ${operation} ${current} =`;
+    topOperand.textContent = expression + " =";
     current = result.toString();
-    previous = '';
+    previous = "";
     operation = null;
     updateDisplay();
-
+  } catch {
+    currentOperand.textContent = "Invalid Expression";
+    current = "";
+    previous = "";
+    operation = null;
+  }
 }
 
 // AC button
 
-document.querySelector('.ac-btn').addEventListener('click', clear);
+document.querySelector(".ac-btn").addEventListener("click", clear);
 
 function clear() {
-    current = '';
-    previous = '';
-    operation = null;
-    topOperand.textContent = '';
-    updateDisplay();
+  current = "";
+  previous = "";
+  operation = null;
+  topOperand.textContent = "";
+  updateDisplay();
 }
-
 
 //backspace button
 
-document.getElementById('backspace-btn').addEventListener('click', backspace);
+document.getElementById("backspace-btn").addEventListener("click", backspace);
 
 function backspace() {
   current = current.slice(0, -1);
   updateDisplay();
 }
 
-
 //percentage
 
-document.getElementById('mod-btn').addEventListener('click', () => {
-    if (current === '') return;
+document.getElementById("mod-btn").addEventListener("click", () => {
+  if (current === "") return;
 
-    current = (parseFloat(current) / 100).toString();
-    updateDisplay();
+  current = (parseFloat(current) / 100).toString();
+  updateDisplay();
 });
 
 //brackets
 
-document.querySelectorAll(".bracket").forEach(btn => {
+document.querySelectorAll(".bracket").forEach((btn) => {
   btn.addEventListener("click", () => {
     current += btn.textContent;
     updateDisplay();
@@ -169,67 +141,64 @@ document.querySelectorAll(".bracket").forEach(btn => {
 //Scientific operations
 
 function scientific(type) {
+  if (current === "") return;
 
-  if(current === '') return;
-
-  let value = parseFloat(currentOperand.textContent);
+  let value = parseFloat(current);
   if (isNaN(value)) return;
 
   let originalValue = current;
 
   switch (type) {
     case "sin":
-      value = Math.sin(value);
+      value = Math.sin(value * Math.PI / 180);
       break;
     case "cos":
-      value = Math.cos(value);
+      value = Math.cos(value * Math.PI / 180);
       break;
     case "tan":
-      value = Math.tan(value);
+      value = Math.tan(value * Math.PI / 180);
       break;
     case "sqrt":
       if (value < 0) {
-                currentOperand.textContent = 'Invalid Input';
-                current = '';
-                return;
-            }
-            value = Math.sqrt(value);
-            break;
+        currentOperand.textContent = "Invalid Input";
+        current = "";
+        return;
+      }
+      value = Math.sqrt(value);
+      break;
     case "log":
       if (value <= 0) {
-                currentOperand.textContent = 'Invalid Input';
-                current = '';
-                return;
-            }
-            value = Math.log10(value);
-            break;
+        currentOperand.textContent = "Invalid Input";
+        current = "";
+        return;
+      }
+      value = Math.log10(value);
+      break;
   }
   // Handle decimal precision
-    if (value !== Math.floor(value)) {
-        value = Math.round(value * 1000000000) / 1000000000;
-    }
+  if (value !== Math.floor(value)) {
+    value = Math.round(value * 1000000000) / 1000000000;
+  }
 
-    topOperand.textContent = type + '(' + originalValue + ')';
-    current = value.toString();
-    updateDisplay();
+  topOperand.textContent = `${type} (${originalValue})`;
+  current = value.toString();
+  updateDisplay();
 }
-
 
 // HISTORY FUNCTIONS
 function addToHistory(entry) {
-    history.unshift(entry); // Add to beginning
-    if (history.length > 10) {
-        history.pop(); // Keep only last 10
-    }
-    updateHistoryDisplay();
+  history.unshift(entry); // Add to beginning
+  if (history.length > 10) {
+    history.pop(); // Keep only last 10
+  }
+  updateHistoryDisplay();
 }
-
 
 function updateHistoryDisplay() {
   historyItems.innerHTML =
     history.length === 0
       ? `<div class="no-history">No calculations yet</div>`
-      : history.map(h => `<div class="history-item">${h}</div>`).join("");
+      : history.map((h) => `<div class="history-item">${h}</div>`).join("");
 }
 
 historyToggle.addEventListener("click", () => {
@@ -241,28 +210,24 @@ clearHistoryBtn.addEventListener("click", () => {
   updateHistoryDisplay();
 });
 
-
 //dark mode
 
+theme.addEventListener("click", () => {
+  isDarkMode = !isDarkMode;
 
-theme.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    
-    calcWrap.classList.toggle('dark');
-    historyPanel.classList.toggle('dark');
-    
-    document.querySelectorAll('.btn-primary').forEach(btn => {
-        btn.classList.toggle('dark');
-    });
+  calcWrap.classList.toggle("dark");
+  historyPanel.classList.toggle("dark");
 
-    if (isDarkMode) {
-        theme.innerHTML = '<i class="fa-solid fa-sun"></i> Light Mode';
-    } else {
-        theme.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Mode';
-    }
+  document.querySelectorAll(".btn-primary").forEach((btn) => {
+    btn.classList.toggle("dark");
+  });
+
+  if (isDarkMode) {
+    theme.innerHTML = '<i class="fa-solid fa-sun"></i> Light Mode';
+  } else {
+    theme.innerHTML = '<i class="fa-solid fa-moon"></i> Dark Mode';
+  }
 });
-
-
 
 //keyboard Support
 
